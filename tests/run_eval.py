@@ -11,16 +11,20 @@ from pathlib import Path
 
 import requests
 
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8091")
 SAMPLE_DOC = Path(__file__).parent.parent / "data" / "sample_docs" / "sample_policy.txt"
 QA_SET = Path(__file__).parent / "qa_eval_set.json"
 
+# Bypass any system/registry proxy for calls to our own local backend.
+http = requests.Session()
+http.trust_env = False
+
 
 def main():
-    session_id = requests.post(f"{BACKEND_URL}/session").json()["session_id"]
+    session_id = http.post(f"{BACKEND_URL}/session").json()["session_id"]
 
     with open(SAMPLE_DOC, "rb") as f:
-        upload = requests.post(
+        upload = http.post(
             f"{BACKEND_URL}/upload",
             files={"file": (SAMPLE_DOC.name, f.read())},
             data={"session_id": session_id},
@@ -32,7 +36,7 @@ def main():
     passed = 0
 
     for case in qa_set:
-        resp = requests.post(
+        resp = http.post(
             f"{BACKEND_URL}/chat",
             json={"session_id": session_id, "question": case["question"]},
         )

@@ -2,15 +2,21 @@ import os
 
 import requests
 import streamlit as st
+from dotenv import load_dotenv
 
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+load_dotenv(override=True)  # override so a stray shell env var can't shadow .env
+
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8091")
+
+http = requests.Session()
+http.trust_env = False
 
 st.set_page_config(page_title="RAG Doc Chat", page_icon="📄")
 st.title("📄 RAG Doc Chat")
 st.caption("Upload a document and ask questions — answers are grounded and cited.")
 
 if "session_id" not in st.session_state:
-    resp = requests.post(f"{BACKEND_URL}/session")
+    resp = http.post(f"{BACKEND_URL}/session")
     resp.raise_for_status()
     st.session_state.session_id = resp.json()["session_id"]
     st.session_state.messages = []
@@ -24,7 +30,7 @@ with st.sidebar:
         with st.spinner(f"Indexing {uploaded.name}..."):
             files = {"file": (uploaded.name, uploaded.getvalue())}
             data = {"session_id": st.session_state.session_id}
-            resp = requests.post(f"{BACKEND_URL}/upload", files=files, data=data)
+            resp = http.post(f"{BACKEND_URL}/upload", files=files, data=data)
 
         if resp.ok:
             st.session_state.uploaded_files.append(uploaded.name)
@@ -49,7 +55,7 @@ if question := st.chat_input("Ask a question about your documents"):
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
-            resp = requests.post(
+            resp = http.post(
                 f"{BACKEND_URL}/chat",
                 json={"session_id": st.session_state.session_id, "question": question},
             )

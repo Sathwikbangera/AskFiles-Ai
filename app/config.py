@@ -25,7 +25,7 @@ class Settings(BaseSettings):
 
     session_ttl_hours: int = 6
     max_upload_mb: int = 15
-    backend_url: str = "http://localhost:8000"
+    backend_url: str = "http://127.0.0.1:8091"
 
     class Config:
         env_file = ".env"

@@ -34,7 +34,7 @@ pip install -r requirements.txt
 cp .env.example .env
 # set GOOGLE_API_KEY, leave LLM_PROVIDER=gemini and VECTOR_STORE=chroma
 
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8091
 # in a second terminal:
 streamlit run streamlit_app/app.py
 ```
