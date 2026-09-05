@@ -1,0 +1,22 @@
+[
+  {
+    "question": "How many days per week can employees work remotely?",
+    "expected_keywords": ["3", "three"]
+  },
+  {
+    "question": "What is the home office stipend amount?",
+    "expected_keywords": ["200", "$200"]
+  },
+  {
+    "question": "What are the core working hours for remote employees?",
+    "expected_keywords": ["9", "3:00", "9:00"]
+  },
+  {
+    "question": "What must remote employees use to access internal systems?",
+    "expected_keywords": ["VPN"]
+  },
+  {
+    "question": "What is the capital of France?",
+    "expected_keywords": ["don't have enough information", "not", "no information"]
+  }
+]
