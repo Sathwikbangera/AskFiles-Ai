@@ -13,11 +13,19 @@ the answer, say you don't have enough information in the uploaded documents —
 do not use outside knowledge."""
 
 
+def _normalize_page(page) -> int | str:
+    """Pinecone/Azure Search coerce numeric metadata to float (1 -> 1.0);
+    normalize back to int so citations read 'page 1', not 'page 1.0'."""
+    if isinstance(page, float) and page.is_integer():
+        return int(page)
+    return page
+
+
 def _format_context(docs) -> str:
     parts = []
     for doc in docs:
         source = doc.metadata.get("source", "unknown")
-        page = doc.metadata.get("page", "?")
+        page = _normalize_page(doc.metadata.get("page", "?"))
         parts.append(f"[source: {source}, page {page}]\n{doc.page_content}")
     return "\n\n---\n\n".join(parts)
 
@@ -43,7 +51,7 @@ def answer_question(session_id: str, question: str, k: int = 4) -> dict:
     response = chat_model.invoke(messages)
 
     sources = [
-        {"source": d.metadata.get("source"), "page": d.metadata.get("page")}
+        {"source": d.metadata.get("source"), "page": _normalize_page(d.metadata.get("page"))}
         for d in docs
     ]
 

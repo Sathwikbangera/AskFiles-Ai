@@ -9,9 +9,9 @@ from app.config import settings
 from app.services.llm_provider import get_embeddings
 
 _EMBEDDING_DIMENSIONS = {
-    "gemini": 768,
-    "openai": 1536,
-    "azure_openai": 1536,
+    "gemini": 3072,   # models/gemini-embedding-001 default output size
+    "openai": 1536,   # text-embedding-3-small
+    "azure_openai": 1536,  # assumes an equivalent small embedding deployment
 }
 
 
@@ -67,7 +67,7 @@ class PineconeAdapter(VectorStoreAdapter):
             )
 
         self.store = PineconeVectorStore(
-            index_name=settings.pinecone_index,
+            index=client.Index(settings.pinecone_index),
             embedding=get_embeddings(),
         )
 
