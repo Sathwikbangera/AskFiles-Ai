@@ -7,11 +7,40 @@ from dotenv import load_dotenv
 load_dotenv(override=True)  # override so a stray shell env var can't shadow .env
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8091")
+MAX_QUESTION_CHARS = 2000
 
 http = requests.Session()
 http.trust_env = False
 
+
+def error_detail(resp) -> str:
+    """FastAPI's `detail` is a plain string for HTTPException but a list of
+    error objects for pydantic validation errors (e.g. question too long)."""
+    detail = resp.json().get("detail", "Something went wrong")
+    if isinstance(detail, list):
+        return "; ".join(d.get("msg", str(d)) for d in detail)
+    return detail
+
+
+APP_PASSWORD = os.getenv("APP_PASSWORD", "")
+
 st.set_page_config(page_title="RAG Doc Chat", page_icon="📄")
+
+if APP_PASSWORD:
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+
+    if not st.session_state.authenticated:
+        st.title("📄 RAG Doc Chat")
+        pwd = st.text_input("Enter access password", type="password")
+        if pwd:
+            if pwd == APP_PASSWORD:
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("Incorrect password")
+        st.stop()
+
 st.title("📄 RAG Doc Chat")
 st.caption("Upload a document and ask questions — answers are grounded and cited.")
 
@@ -37,7 +66,7 @@ with st.sidebar:
             body = resp.json()
             st.success(f"Indexed {body['chunks_indexed']} chunks from {body['filename']}")
         else:
-            st.error(resp.json().get("detail", "Upload failed"))
+            st.error(error_detail(resp))
 
     if st.session_state.uploaded_files:
         st.write("**Indexed files:**")
@@ -48,7 +77,9 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-if question := st.chat_input("Ask a question about your documents"):
+if question := st.chat_input(
+    "Ask a question about your documents", max_chars=MAX_QUESTION_CHARS
+):
     st.session_state.messages.append({"role": "user", "content": question})
     with st.chat_message("user"):
         st.markdown(question)
@@ -72,6 +103,6 @@ if question := st.chat_input("Ask a question about your documents"):
                         st.write(f"- {s['source']} (page {s['page']})")
             st.session_state.messages.append({"role": "assistant", "content": answer})
         else:
-            error = resp.json().get("detail", "Something went wrong")
+            error = error_detail(resp)
             st.error(error)
             st.session_state.messages.append({"role": "assistant", "content": f"Error: {error}"})
