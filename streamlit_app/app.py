@@ -53,9 +53,14 @@ if "session_id" not in st.session_state:
 
 with st.sidebar:
     st.subheader("Upload documents")
-    uploaded = st.file_uploader("PDF, DOCX, or TXT", type=["pdf", "docx", "txt", "md"])
+    uploaded_batch = st.file_uploader(
+        "PDF, DOCX, or TXT", type=["pdf", "docx", "txt", "md"], accept_multiple_files=True
+    )
 
-    if uploaded and uploaded.name not in st.session_state.uploaded_files:
+    for uploaded in uploaded_batch or []:
+        if uploaded.name in st.session_state.uploaded_files:
+            continue
+
         with st.spinner(f"Indexing {uploaded.name}..."):
             files = {"file": (uploaded.name, uploaded.getvalue())}
             data = {"session_id": st.session_state.session_id}
