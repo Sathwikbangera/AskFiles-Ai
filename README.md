@@ -1,229 +1,533 @@
 # AskFiles AI — RAG Doc Chat
 
-Production-oriented document Q&A: upload files, ask questions, get answers
-that are grounded in and cited from your documents — never the model's own
-general knowledge.
+### Production-oriented document Q&A using RAG, LLMs, and vector search
 
-**Live demo:** https://askfiles-ai.onrender.com/ (password-protected — ask for access)
+AskFiles AI is a deployed document intelligence application that lets users upload PDF, DOCX, or TXT files and ask questions about their content.
 
-**Screenshot:** _add a screenshot of the running app here (e.g. `docs/screenshot.png`)_
+Answers are grounded exclusively in retrieved document context and include source citations, rather than relying on the model's general knowledge.
 
-## Overview
+**Live Demo:** https://askfiles-ai.onrender.com/
+*The demo is password-protected. Contact me for access.*
 
-This is a portfolio project built to demonstrate production RAG engineering
-patterns, not just a LangChain quickstart wrapped in a UI. It upload-chunks
-any PDF/DOCX/TXT, embeds and indexes it, and answers questions with forced
-source citations. The interesting part isn't the demo itself — it's the
-decisions underneath it: a provider-agnostic architecture that runs on free
-tools locally and swaps to managed cloud services in production with zero
-code changes, multi-tenant session isolation, and the cost/security hardening
-a public-facing AI endpoint actually needs.
+> **Portfolio project:** Built to demonstrate production-oriented RAG engineering patterns, provider abstraction, document isolation, security considerations, evaluation, and cloud deployment.
+
+---
 
 ## Demo
 
-Try it at **https://askfiles-ai.onrender.com/**:
-1. Upload one or more PDF/DOCX/TXT files
-2. Ask questions about them in the chat box
-3. Every answer cites its source file and page
-4. Ask something outside the uploaded documents — it refuses instead of guessing
+**Live application:** https://askfiles-ai.onrender.com/
 
-Two notes on the live demo: it's gated behind a password (contact me for
-access), and it's hosted on Render's free tier, which sleeps after ~15
-minutes idle — the first request after a while can take 30-50 seconds to
-wake up.
+### Example workflow
+
+1. Upload one or more PDF, DOCX, or TXT documents.
+2. Ask questions about the uploaded content.
+3. The system retrieves relevant document chunks.
+4. The LLM generates an answer grounded in the retrieved context.
+5. Answers include source file and page citations.
+6. Questions outside the uploaded content are refused instead of answered from general knowledge.
+
+### Screenshots
+
+![main screen](image.png)
+
+---
+
+## Overview
+
+The application implements an end-to-end Retrieval-Augmented Generation (RAG) pipeline:
+
+```text
+Documents
+    ↓
+Text extraction
+    ↓
+Page-aware chunking
+    ↓
+Embeddings
+    ↓
+Vector store
+    ↓
+Semantic retrieval
+    ↓
+LLM
+    ↓
+Grounded answer + citations
+```
+
+The architecture is designed around interchangeable LLM and vector-store providers. The core application logic can run with free/local development tools and can be configured to use managed cloud services without changing the RAG application layer.
+
+The system also addresses practical concerns for a public-facing AI application, including session-level document isolation, prompt-injection screening, input limits, secret management, grounding evaluation, and protection against excessive free-tier usage.
+
+---
 
 ## Key Features
 
-- **Multi-file, multi-document Q&A** — upload several files into one session and ask questions across all of them
-- **Citation-grounded answers** — every claim cites `[source, page]`; refuses to answer from outside the retrieved context
-- **Multi-tenant session isolation** — each upload session is tagged and filtered by `session_id` so documents never leak across users; sessions expire and their vectors are purged automatically
-- **Swappable LLM providers** — Gemini, OpenAI, or Azure OpenAI, selected via one environment variable, no code changes
-- **Swappable vector stores** — Chroma (local dev), Pinecone (production), or Azure AI Search, selected the same way
-- **Prompt-injection screening** on user input
-- **Public-endpoint hardening** — password gate and per-message length limits to protect free-tier API quotas from abuse
-- **Automated grounding eval** — a fixed Q/A set (including an out-of-scope question) checked against the live API
+* **Multi-file, multi-document Q&A** — upload multiple files into one session and ask questions across them
+* **Citation-grounded answers** — answers cite `[source, page]` and are instructed not to answer outside the retrieved context
+* **Session isolation** — documents are tagged with `session_id` and retrieval is restricted to the active session
+* **Automatic session cleanup** — expired sessions and their vectors are purged automatically
+* **Swappable LLM providers** — Gemini, OpenAI, and Azure OpenAI
+* **Swappable vector stores** — Chroma, Pinecone, and Azure AI Search
+* **Prompt-injection screening** on user input
+* **Public endpoint hardening** — password protection and per-message length limits
+* **Grounding evaluation** — automated evaluation against a fixed question/answer set, including an out-of-scope question
+* **Dockerized deployment** — the application runs as a containerized service
+* **Production-oriented architecture** — provider abstraction, isolation, security controls, and evaluation built into the application design
+
+---
+
+## Example Use Cases
+
+The same architecture can be adapted for:
+
+* 📄 Internal company knowledge bases
+* 👥 HR and employee policy assistants
+* 📑 Product and technical documentation assistants
+* ⚖️ Legal and compliance document Q&A
+* 🏢 Enterprise document search
+* 🎓 Research and academic document assistants
+* 🛠️ Customer-support knowledge bases
+* 📚 Private document intelligence applications
+
+---
 
 ## What This Project Demonstrates
 
-| Skill | Where |
-|---|---|
-| RAG chatbot development | End-to-end: ingestion → retrieval → generation |
-| Document Q&A systems | Multi-file upload and cross-document retrieval |
-| OpenAI API integration | `app/services/llm_provider.py` (OpenAI + Azure OpenAI adapters) |
-| Azure AI Search integration | `app/services/vectorstore_provider.py` `AzureSearchAdapter` |
-| Vector / semantic search | Three interchangeable vector-store backends |
-| Embedding pipelines | Page-aware chunking, metadata tagging, multi-provider embeddings |
-| AI chatbot backend | FastAPI REST API (`/session`, `/upload`, `/chat`) |
-| LLM evaluation / observability | `tests/run_eval.py` — automated grounding eval against the live API |
-| LangChain integrations | Retrieval chain, text splitting, provider/vector-store abstractions |
-| AI application security & governance | Prompt-injection guard, access gate, input limits, forced grounding |
+| Skill                    | Implementation                                                   |
+| ------------------------ | ---------------------------------------------------------------- |
+| RAG chatbot development  | End-to-end ingestion → retrieval → generation                    |
+| Document Q&A             | Multi-file and cross-document retrieval                          |
+| LLM integration          | Gemini, OpenAI, and Azure OpenAI adapters                        |
+| Vector / semantic search | Chroma, Pinecone, and Azure AI Search adapters                   |
+| Embedding pipelines      | Page-aware chunking, metadata tagging, multi-provider embeddings |
+| AI backend development   | FastAPI REST API                                                 |
+| LLM evaluation           | Automated grounding evaluation                                   |
+| LangChain                | Retrieval pipeline and text splitting                            |
+| AI security              | Prompt-injection screening, access control, input limits         |
+| Multi-tenant isolation   | Session-filtered vector retrieval                                |
+| Cloud deployment         | Docker + Render                                                  |
+| Provider abstraction     | Runtime configuration without changing core application logic    |
+
+---
 
 ## How It Works
 
-1. A file is uploaded and split into pages, then chunked with overlap (`app/services/ingestion.py`)
-2. Each chunk is embedded and stored tagged with the current `session_id`
-3. A chat question triggers retrieval filtered to that `session_id` only
-4. The top-k chunks are passed to the LLM with a system prompt that forces `[source, page]` citations and forbids answering outside the given context
-5. Sessions (and their vectors) expire after `SESSION_TTL_HOURS` and are swept on the next request
+### 1. Document ingestion
+
+Uploaded PDF, DOCX, or TXT files are processed and split into pages/chunks.
+
+Each chunk retains metadata such as:
+
+```text
+source
+page
+session_id
+```
+
+### 2. Embedding and indexing
+
+Document chunks are converted into embeddings and stored in the configured vector store.
+
+```text
+Chunk
+  ↓
+Embedding model
+  ↓
+Vector representation
+  ↓
+Vector store
+```
+
+### 3. Query retrieval
+
+When a user asks a question, retrieval is restricted to the current `session_id`.
+
+This prevents documents belonging to different sessions from being mixed during retrieval.
+
+### 4. Grounded generation
+
+The most relevant chunks are passed to the LLM as context.
+
+The generation prompt instructs the model to:
+
+* answer using the retrieved context
+* provide `[source, page]` citations
+* refuse questions that cannot be answered from the supplied context
+
+### 5. Session cleanup
+
+Sessions expire after `SESSION_TTL_HOURS`, after which associated vectors are purged.
+
+---
 
 ## Architecture
 
-```
-Streamlit UI  --->  FastAPI backend  --->  LLM provider (swappable)
-                          |                  Gemini (dev) / OpenAI / Azure OpenAI (demo)
-                          v
-                  Vector store (swappable)
-                  Chroma (dev) / Pinecone (deployed) / Azure AI Search (demo adapter)
+```text
+                         ASKFILES AI
+
+┌──────────────────────┐
+│     Streamlit UI     │
+│                      │
+│  Upload + Chat       │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│    FastAPI Backend   │
+│                      │
+│ REST API + RAG       │
+└──────────┬───────────┘
+           │
+     ┌─────┴──────────────┐
+     │                    │
+     ▼                    ▼
+┌─────────────┐    ┌───────────────┐
+│ RAG Pipeline│    │  Guardrails   │
+└──────┬──────┘    └───────────────┘
+       │
+       ▼
+┌──────────────────────┐
+│    Vector Store      │
+│                      │
+│ Chroma / Pinecone /  │
+│ Azure AI Search      │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│     LLM Provider     │
+│                      │
+│ Gemini / OpenAI /    │
+│ Azure OpenAI         │
+└──────────────────────┘
 ```
 
-FastAPI and Streamlit run together in a single Docker container (`start.sh`)
-on Render. The FastAPI backend is bound to `localhost` inside the container
-and is never reachable from the public internet — only the Streamlit UI is
-externally exposed, which talks to the backend server-side. This was
-verified directly against the live deployment (backend routes return
-Streamlit's own 404/405 responses when hit externally).
+### Deployment architecture
+
+FastAPI and Streamlit run together inside a single Docker container on Render.
+
+The FastAPI backend is bound internally and is not exposed as a public endpoint. The Streamlit application communicates with the backend server-side.
+
+Production configuration:
+
+```text
+LLM_PROVIDER=gemini
+VECTOR_STORE=pinecone
+```
+
+---
 
 ## Technical Highlights
 
-Real issues hit and fixed while building this, since a resume claim is only
-as good as what it survived:
+### Provider-agnostic architecture
 
-- **Provider-agnostic adapter pattern**: a 3×3 matrix of LLM providers ×
-  vector stores, selected entirely via `.env`, with no code branching in
-  the application logic itself.
-- **Caught a silent-corruption bug before it shipped**: assumed Gemini's
-  embeddings were 768-dimensional (a common default); the actual output is
-  3072-dimensional. Verified empirically before wiring Pinecone, since a
-  wrong dimension would have made every future upsert fail.
-- **Cross-store metadata normalization**: Pinecone and Azure AI Search
-  coerce integer metadata to floats, silently turning `page 1` into
-  `page 1.0` in citations. Normalized on read rather than assuming
-  identical behavior across vector stores.
-- **Handled upstream model deprecation**: two hardcoded Gemini model names
-  (`text-embedding-004`, `gemini-2.0-flash`) were retired mid-build. Switched
-  to Google's `-latest` alias pattern instead of pinning exact versions.
-- **Diagnosed a misleading local SSL error**: a "certificate verify failed"
-  error during local testing looked like corporate SSL inspection, but was
-  actually a pre-existing local process (a print-management client)
-  squatting on ports 8000/8443 and hijacking IPv6 "localhost" resolution.
-  Root-caused via `netstat`/`wmic`, not by guessing.
-- **Adapted to a platform policy change mid-build**: Hugging Face Spaces
-  moved Docker-based Spaces behind a paid Pro plan after this project's
-  deployment target was chosen. Re-scoped to Render with zero application
-  code changes, since the same Docker container just needed a new host.
-- **Hardened a public endpoint against cost abuse**: once deployed, added a
-  shared-password gate and a per-message length cap specifically to protect
-  free-tier LLM/vector-store quotas (which are easy to exhaust — Gemini's
-  free tier allows only 20 chat requests/day per model).
+The application uses adapters for LLM and vector-store providers.
+
+The architecture supports combinations of:
+
+```text
+LLM:
+├── Gemini
+├── OpenAI
+└── Azure OpenAI
+
+Vector Store:
+├── Chroma
+├── Pinecone
+└── Azure AI Search
+```
+
+Providers are selected through environment variables without changes to the core RAG application logic.
+
+### Embedding dimension validation
+
+During development, Gemini embedding output was empirically validated rather than relying on an assumed dimensionality before configuring the vector database.
+
+This prevented a potential vector-dimension mismatch from reaching the production indexing path.
+
+### Cross-store metadata normalization
+
+Different vector stores can normalize metadata types differently.
+
+For example, page metadata can be returned as `1.0` instead of `1`.
+
+The application normalizes metadata when reading it back so that citations remain consistent across vector-store implementations.
+
+### Model lifecycle handling
+
+Upstream model deprecations were handled by moving away from hardcoded retired Gemini model names and using the provider's supported latest-model alias pattern.
+
+### Deployment portability
+
+The application was originally targeted at Hugging Face Spaces and later moved to Render when the deployment requirements changed.
+
+The Docker-based architecture allowed the hosting platform to be changed without restructuring the application.
+
+### Public endpoint cost protection
+
+Once deployed publicly, additional controls were introduced to protect free-tier resources:
+
+* shared password gate
+* per-message length limits
+* restricted backend exposure
+* generic client-facing errors
+
+---
 
 ## Tech Stack
 
-| Layer | Choice |
-|---|---|
-| Backend | Python, FastAPI |
-| Orchestration | LangChain |
-| LLM | Google Gemini / OpenAI / Azure OpenAI |
-| Vector store | Chroma / Pinecone / Azure AI Search |
-| Frontend | Streamlit |
-| File parsing | pypdf, python-docx |
-| Deployment | Docker, Render |
-| Eval | Custom grounding eval against the live API |
+| Layer            | Technology                             |
+| ---------------- | -------------------------------------- |
+| Language         | Python                                 |
+| Backend          | FastAPI                                |
+| Frontend         | Streamlit                              |
+| AI orchestration | LangChain                              |
+| LLM              | Google Gemini / OpenAI / Azure OpenAI  |
+| Vector store     | Chroma / Pinecone / Azure AI Search    |
+| Embeddings       | Provider-configurable embedding models |
+| PDF parsing      | pypdf                                  |
+| DOCX parsing     | python-docx                            |
+| Containerization | Docker                                 |
+| Deployment       | Render                                 |
+| Evaluation       | Custom grounding evaluation            |
+
+---
 
 ## Provider Configuration
 
-Set these in `.env` — no code changes required for any combination:
+Providers are selected using environment variables.
 
-- `LLM_PROVIDER=gemini` (default, free) `| openai | azure_openai`
-- `VECTOR_STORE=chroma` (default, local) `| pinecone | azure_search`
+### LLM
 
-See `.env.example` for the full list of provider-specific keys.
+```env
+LLM_PROVIDER=gemini
+```
+
+Supported:
+
+```text
+gemini
+openai
+azure_openai
+```
+
+### Vector store
+
+```env
+VECTOR_STORE=chroma
+```
+
+Supported:
+
+```text
+chroma
+pinecone
+azure_search
+```
+
+See `.env.example` for provider-specific configuration.
+
+---
 
 ## Local Development
 
+### 1. Create a virtual environment
+
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+```
+
+Activate it:
+
+**Linux/macOS**
+
+```bash
+source .venv/bin/activate
+```
+
+**Windows**
+
+```bash
+.venv\Scripts\activate
+```
+
+### 2. Install dependencies
+
+```bash
 pip install -r requirements.txt
+```
 
+### 3. Configure environment variables
+
+```bash
 cp .env.example .env
-# set GOOGLE_API_KEY, leave LLM_PROVIDER=gemini and VECTOR_STORE=chroma
+```
 
+For local development, use:
+
+```env
+LLM_PROVIDER=gemini
+VECTOR_STORE=chroma
+```
+
+Add the required Gemini API key.
+
+### 4. Start the backend
+
+```bash
 uvicorn app.main:app --reload --port 8091
-# in a second terminal:
+```
+
+### 5. Start the Streamlit UI
+
+In another terminal:
+
+```bash
 streamlit run streamlit_app/app.py
 ```
 
-> Port 8091 (not 8000) is deliberate: on Windows, other local software
-> (e.g. print-management clients like uniFLOW SmartClient) commonly
-> squats on 8000/8443, which can silently hijack "localhost" requests.
-> `BACKEND_URL` in `.env` always uses `127.0.0.1` explicitly rather than
-> `localhost` for the same reason — Windows can resolve `localhost` to
-> the IPv6 loopback first, which such tools also occupy.
+The application should now be available through the Streamlit interface.
+
+---
 
 ## Running the Evaluation
+
+The project includes a repeatable grounding evaluation.
+
+Run:
 
 ```bash
 python tests/run_eval.py
 ```
 
-Uploads `data/sample_docs/sample_policy.txt` and checks a fixed Q/A set
-(including an out-of-scope question, to verify the model refuses to answer
-from outside knowledge) for expected keywords against the live API.
+The evaluation:
+
+1. uploads a sample document
+2. asks a fixed set of questions
+3. checks expected answers/keywords
+4. includes an out-of-scope question
+5. verifies that the application does not answer unsupported questions from general knowledge
+
+The evaluation currently uses keyword-based checks rather than a full RAG evaluation framework.
+
+---
 
 ## Deployment
 
-Deployed as a single Docker container on **Render** (free tier), running
-both the FastAPI backend and the Streamlit UI (`start.sh`), with
-`LLM_PROVIDER=gemini` and `VECTOR_STORE=pinecone` in production. Streamlit
-binds to Render's dynamically assigned `$PORT`.
+The application is deployed as a Docker container on **Render**.
 
-(Originally targeted Hugging Face Spaces; moved to Render after Hugging
-Face restricted free-tier Docker Spaces to paid Pro accounts — see
-Technical Highlights.)
+Production configuration:
+
+```text
+LLM_PROVIDER=gemini
+VECTOR_STORE=pinecone
+```
+
+The container runs:
+
+```text
+Streamlit UI
+     +
+FastAPI backend
+```
+
+The application uses Render's dynamically assigned `$PORT`.
+
+> The public demo uses Render's free tier, which can introduce cold-start latency after periods of inactivity.
+
+---
 
 ## Security
 
-**In place:**
-- Backend API has no public attack surface — only the Streamlit UI is
-  externally reachable (verified against the live deployment)
-- HTTPS enforced automatically by the hosting platform
-- Secrets live only as environment variables, never committed to the repo
-- Multi-tenant isolation via `session_id`-filtered vector queries
-- Uploaded files are processed in memory only — never written to disk with
-  a user-controlled filename (no path-traversal surface)
-- Forced citation grounding reduces hallucination and makes answers auditable
-- Password gate + per-message length cap on the public demo, to protect
-  free-tier quotas from abuse
-- Generic error responses to clients; no stack traces leak externally
+### Implemented
 
-**Known, honestly-disclosed gaps** (see Limitations below).
+* Backend is not publicly exposed
+* HTTPS provided by the hosting platform
+* Secrets stored through environment variables
+* No API keys committed to source control
+* Session-based document isolation
+* File-type restrictions
+* Upload size limits
+* Prompt-injection screening on user queries
+* Forced grounding instructions
+* Password protection for the public demo
+* Per-message length limits
+* Generic client-facing error responses
+* Uploaded files processed in memory rather than written using user-controlled filenames
+
+### Security limitations
+
+This project is intentionally transparent about its current security boundaries.
+
+The prompt-injection protection is currently a lightweight regex-based heuristic applied to user queries. Uploaded document content is not independently scanned for prompt injection.
+
+This is appropriate for a portfolio/demo application, but would require stronger controls before being used with untrusted multi-party documents in a production enterprise environment.
+
+---
 
 ## Limitations
 
-- The prompt-injection guard is a shallow regex heuristic on the user's
-  typed question only — it does not screen uploaded document content, and
-  is easy to bypass with rephrasing. Adequate for a demo, not for a
-  production system handling untrusted multi-party documents.
-- Session tracking is in-memory; a container restart silently orphans any
-  vectors already written to Pinecone for sessions that existed at restart
-  time (they're never TTL-cleaned since the tracker forgets them).
-- No per-IP rate limiting beyond the password gate and message-length cap.
-- Gemini's free tier caps out at 20 chat requests/day per model — real
-  constraint on how much live demo traffic this can sustain without a paid
-  key.
-- No malware/content scanning on uploaded files.
-- Render's free tier sleeps after ~15 minutes idle (cold start on next visit).
+* Prompt-injection protection is heuristic-based and can be bypassed through rephrasing.
+* Uploaded document content is not scanned for malicious prompt instructions.
+* Session tracking is currently in-memory.
+* Container restarts can orphan vectors associated with sessions that existed before the restart.
+* There is no per-IP rate limiting beyond the password gate and message-length limit.
+* The Gemini free tier limits how much live demo traffic can be supported.
+* Uploaded files are not malware-scanned.
+* Render's free tier introduces cold-start latency after inactivity.
+
+---
 
 ## Future Improvements
 
-- Per-IP/session rate limiting
-- Persistent (not in-memory) session store
-- Stronger prompt-injection defense (LLM-based classifier instead of regex)
-- Streaming chat responses
-- Real RAGAS-based evaluation metrics (faithfulness, relevancy) instead of keyword checks
-- CI pipeline running the eval suite on every push
-- Azure OpenAI + Azure AI Search live demo clip (adapters are written and swappable, pending short Azure trial-credit use)
+* Persistent session management
+* Per-IP and per-session rate limiting
+* Stronger prompt-injection detection
+* Streaming responses
+* Hybrid keyword + semantic retrieval
+* Reranking
+* Multi-user authentication and authorization
+* Real RAGAS-based evaluation metrics
+* CI pipeline for automated evaluation
+* Azure OpenAI + Azure AI Search production demonstration
+* Persistent document collections
+* Usage and cost analytics
+
+---
+
+## What Can Be Built From This
+
+This project provides a foundation for custom AI knowledge applications such as:
+
+```text
+                    Custom AI Knowledge Assistant
+                              │
+        ┌─────────────────────┼─────────────────────┐
+        ▼                     ▼                     ▼
+  Company Knowledge      HR / Policy          Technical Docs
+      Assistant             Bot                  Assistant
+        │                     │                     │
+        └─────────────────────┼─────────────────────┘
+                              ▼
+                    RAG + LLM + Vector Search
+```
+
+A production implementation can be extended with:
+
+* user authentication and authorization
+* private knowledge bases
+* multi-tenant architecture
+* hybrid retrieval
+* reranking
+* enterprise search
+* conversation history
+* usage analytics
+* evaluation pipelines
+* monitoring and observability
+* cloud-specific AI services
+
+---
 
 ## License
 
-MIT — see `LICENSE`.
+MIT — see [`LICENSE`](LICENSE).
